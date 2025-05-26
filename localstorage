@@ -1,4 +1,4 @@
-[
+const users = [
   {
     "username":UncleRafield",
     "email":"theunclerafield@gmail.com",
