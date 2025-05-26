@@ -21,3 +21,4 @@ const users = [
 
 localStorage.setItem("users", JSON.stringify(users));
 localStorage.setItem("currentUser", JSON.stringify(users[0]));
+localStorage.setItem("currentUser", JSON.stringify(userObject));
