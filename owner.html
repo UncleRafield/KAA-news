@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Owner Control Panel</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 700px;
+      margin: 30px auto;
+      padding: 15px;
+      background: #fafafa;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+      background: white;
+      box-shadow: 0 0 5px #ccc;
+    }
+    th, td {
+      padding: 12px;
+      border: 1px solid #ccc;
+      text-align: left;
+    }
+    select {
+      width: 100%;
+      padding: 6px;
+      font-size: 1rem;
+    }
+    button {
+      padding: 12px 20px;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-top: 10px;
+      border-radius: 5px;
+      border: none;
+    }
+    #resetBtn {
+      background-color: #d9534f;
+      color: white;
+    }
+    #resetBtn:hover {
+      background-color: #c9302c;
+    }
+    #logoutBtn {
+      background-color: #337ab7;
+      color: white;
+      margin-bottom: 20px;
+    }
+    #logoutBtn:hover {
+      background-color: #286090;
+    }
+    #localStorageRaw {
+      background: #eee;
+      padding: 10px;
+      border-radius: 5px;
+      font-family: monospace;
+      max-height: 200px;
+      overflow: auto;
+      white-space: pre-wrap;
+      margin-top: 15px;
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Owner Control Panel</h1>
+  <button id="logoutBtn">Log Out</button>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Username</th>
+        <th>Email</th>
+        <th>Role</th>
+        <th>Change Role</th>
+      </tr>
+    </thead>
+    <tbody id="usersTableBody"></tbody>
+  </table>
+
+  <button id="resetBtn">Reset ALL Roles (except owner) to "user"</button>
+
+  <h2>Raw localStorage Data</h2>
+  <pre id="localStorageRaw"></pre>
+
+  <script>
+    // Set your owner username here
+    const OWNER_USERNAME = 'your_owner_username_here';
+
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    if (!currentUser || currentUser.username !== OWNER_USERNAME) {
+      alert("Access denied. Owner only.");
+      window.location.href = 'login.html';
+    }
+
+    const usersTableBody = document.getElementById('usersTableBody');
+    const resetBtn = document.getElementById('resetBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const localStorageRaw = document.getElementById('localStorageRaw');
+
+    // Load users and display them with role selectors
+    function loadUsers() {
+      const users = JSON.parse(localStorage.getItem('users')) || [];
+      usersTableBody.innerHTML = '';
+      users.forEach((user, idx) => {
+        const tr = document.createElement('tr');
+
+        // Create a select dropdown for roles
+        const roleOptions = ['user', 'admin', 'owner']
+          .map(role => `<option value="${role}" ${role === user.role ? 'selected' : ''}>${role}</option>`)
+          .join('');
+
+        tr.innerHTML = `
+          <td>${user.username}</td>
+          <td>${user.email}</td>
+          <td>${user.role}</td>
+          <td>
+            <select data-index="${idx}">
+              ${roleOptions}
+            </select>
+          </td>
+        `;
+        usersTableBody.appendChild(tr);
+      });
+
+      // Add change event listeners to selects
+      document.querySelectorAll('select[data-index]').forEach(select => {
+        select.addEventListener('change', e => {
+          const idx = e.target.getAttribute('data-index');
+          const users = JSON.parse(localStorage.getItem('users')) || [];
+          const newRole = e.target.value;
+
+          // Prevent changing owner's own role (optional)
+          if (users[idx].username === OWNER_USERNAME) {
+            alert("You cannot change your own role.");
+            e.target.value = users[idx].role; // reset select
+            return;
+          }
+
+          users[idx].role = newRole;
+          localStorage.setItem('users', JSON.stringify(users));
+          loadUsers(); // reload table to reflect changes
+          showLocalStorageRaw();
+        });
+      });
+    }
+
+    // Reset all roles except owner
+    resetBtn.addEventListener('click', () => {
+      let users = JSON.parse(localStorage.getItem('users')) || [];
+      users = users.map(user => {
+        if (user.username !== OWNER_USERNAME) {
+          return { ...user, role: 'user' };
+        }
+        return user;
+      });
+      localStorage.setItem('users', JSON.stringify(users));
+      alert('All roles reset to "user" except you.');
+      loadUsers();
+      showLocalStorageRaw();
+    });
+
+    // Logout button
+    logoutBtn.addEventListener('click', () => {
+      localStorage.removeItem('currentUser');
+      window.location.href = 'login.html';
+    });
+
+    // Show raw localStorage data
+    function showLocalStorageRaw() {
+      const allLocalStorage = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        allLocalStorage[key] = localStorage.getItem(key);
+      }
+      localStorageRaw.textContent = JSON.stringify(allLocalStorage, null, 2);
+    }
+
+    loadUsers();
+    showLocalStorageRaw();
+  </script>
+
+</body>
+</html>

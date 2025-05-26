@@ -1,0 +1,19 @@
+[
+  {
+    "username":UncleRafield",
+    "email":"theunclerafield@gmail.com",
+    "password":"Journeyman68?"
+    "role":"owner"
+  {
+    "username":"admin01",
+    "email":"theskibidirizzlerofohioedge@gmail.com",
+    "password":"testadmin1",
+    "role":"admin"
+  },
+  {
+    "username":"Test01",
+    "email":"theskibidirizzlerofohioedge@gmail.com",
+    "password":"testuser1",
+    "role":"user"
+  }
+]

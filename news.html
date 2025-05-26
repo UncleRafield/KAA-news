@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>School News - News Feed</title>
+<style>
+  body { max-width: 600px; margin: 20px auto; font-family: Arial, sans-serif; padding: 10px; }
+  header { display: flex; justify-content: space-between; align-items: center; }
+  nav button { margin-left: 10px; padding: 5px 10px; }
+  h1 { text-align: center; }
+  .news-item { border-bottom: 1px solid #ddd; padding: 10px 0; }
+  .news-item h3 { margin: 0; }
+  .news-item small { color: #555; }
+  .news-item p { margin: 5px 0 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>School News</h1>
+  <nav id="navButtons"></nav>
+</header>
+
+<main>
+  <div id="newsList"></div>
+</main>
+
+<script>
+  // Check current user session
+  let currentUser = JSON.parse(localStorage.getItem('currentUser'));
+
+  if (!currentUser) {
+    // Redirect to landing if not logged in
+    window.location.href = 'index.html';
+  }
+
+  function renderNav() {
+    const nav = document.getElementById('navButtons');
+    nav.innerHTML = '';
+    if (currentUser) {
+      const userSpan = document.createElement('span');
+      userSpan.textContent = `Hello, ${currentUser.username} (${currentUser.role})`;
+      nav.appendChild(userSpan);
+
+      if (currentUser.role === 'admin') {
+        const adminBtn = document.createElement('button');
+        adminBtn.textContent = 'Admin Panel';
+        adminBtn.onclick = () => { location.href = 'admin.html'; };
+        nav.appendChild(adminBtn);
+      }
+
+      const logoutBtn = document.createElement('button');
+      logoutBtn.textContent = 'Logout';
+      logoutBtn.onclick = () => {
+        localStorage.removeItem('currentUser');
+        location.href = 'index.html';
+      };
+      nav.appendChild(logoutBtn);
+    }
+  }
+
+  function escapeHtml(text) {
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function renderNews() {
+    const news = JSON.parse(localStorage.getItem('news')) || [];
+    const container = document.getElementById('newsList');
+    container.innerHTML = '';
+    if (news.length === 0) {
+      container.innerHTML = '<p>No news yet.</p>';
+      return;
+    }
+    news.slice().reverse().forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'news-item';
+      div.innerHTML = `
+        <h3>${escapeHtml(item.title)}</h3>
+        <small>${escapeHtml(item.date)}</small>
+        <p>${escapeHtml(item.content)}</p>
+      `;
+      container.appendChild(div);
+    });
+  }
+
+  renderNav();
+  renderNews();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Panel</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 30px auto;
+      padding: 15px;
+      background: #f8f8f8;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    section {
+      background: white;
+      padding: 20px;
+      margin-bottom: 30px;
+      box-shadow: 0 0 6px #ccc;
+      border-radius: 8px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 15px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+    select, input[type="text"], textarea {
+      width: 100%;
+      padding: 8px;
+      margin-top: 6px;
+      box-sizing: border-box;
+      font-size: 1rem;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    button {
+      padding: 10px 18px;
+      margin-top: 10px;
+      cursor: pointer;
+      border-radius: 5px;
+      border: none;
+      font-size: 1rem;
+    }
+    button.primary {
+      background-color: #28a745;
+      color: white;
+    }
+    button.danger {
+      background-color: #d9534f;
+      color: white;
+    }
+    button.warning {
+      background-color: #f0ad4e;
+      color: white;
+    }
+    #resetRolesBtn {
+      background-color: #d9534f;
+      margin-top: 15px;
+    }
+    #logoutBtn {
+      background-color: #007bff;
+      color: white;
+      margin-bottom: 25px;
+      float: right;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Admin Panel</h1>
+  <button id="logoutBtn">Log Out</button>
+
+  <section id="newsSection">
+    <h2>Manage News</h2>
+    <form id="newsForm">
+      <input type="hidden" id="newsIndex" value="">
+      <label for="newsTitle">Title:</label>
+      <input type="text" id="newsTitle" required />
+      <label for="newsContent">Content:</label>
+      <textarea id="newsContent" required></textarea>
+      <button type="submit" class="primary">Save News</button>
+      <button type="button" id="cancelEditBtn" style="display:none; margin-left:10px;">Cancel Edit</button>
+    </form>
+
+    <h3>Existing News</h3>
+    <table id="newsTable">
+      <thead>
+        <tr><th>Title</th><th>Content</th><th>Date</th><th>Actions</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <section id="userSection" style="display:none;">
+    <h2>Manage Users (Owner only)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Change Role</th>
+        </tr>
+      </thead>
+      <tbody id="usersTableBody"></tbody>
+    </table>
+    <button id="resetRolesBtn" class="danger">Reset ALL Roles (except owner) to "user"</button>
+  </section>
+
+  <script>
+    const OWNER_USERNAME = 'your_owner_username_here'; // CHANGE THIS to your owner username
+
+    // Check logged in user and role
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    if (!currentUser) {
+      alert('Please log in first.');
+      window.location.href = 'login.html';
+    }
+
+    const isOwner = currentUser.username === OWNER_USERNAME && currentUser.role === 'owner';
+    const isAdmin = currentUser.role === 'admin' || isOwner;
+
+    if (!isAdmin) {
+      alert('Access denied. Admins or Owner only.');
+      window.location.href = 'login.html';
+    }
+
+    // Elements
+    const logoutBtn = document.getElementById('logoutBtn');
+    const newsForm = document.getElementById('newsForm');
+    const newsTitle = document.getElementById('newsTitle');
+    const newsContent = document.getElementById('newsContent');
+    const newsIndex = document.getElementById('newsIndex');
+    const newsTableBody = document.querySelector('#newsTable tbody');
+    const cancelEditBtn = document.getElementById('cancelEditBtn');
+
+    const userSection = document.getElementById('userSection');
+    const usersTableBody = document.getElementById('usersTableBody');
+    const resetRolesBtn = document.getElementById('resetRolesBtn');
+
+    // Logout
+    logoutBtn.addEventListener('click', () => {
+      localStorage.removeItem('currentUser');
+      window.location.href = 'login.html';
+    });
+
+    // Load news from localStorage
+    function loadNews() {
+      const news = JSON.parse(localStorage.getItem('news')) || [];
+      newsTableBody.innerHTML = '';
+      news.forEach((item, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${escapeHTML(item.title)}</td>
+          <td>${escapeHTML(item.content)}</td>
+          <td>${new Date(item.date).toLocaleString()}</td>
+          <td>
+            <button data-idx="${idx}" class="editBtn">Edit</button>
+            <button data-idx="${idx}" class="deleteBtn danger">Delete</button>
+          </td>
+        `;
+        newsTableBody.appendChild(tr);
+      });
+
+      // Attach edit/delete listeners
+      document.querySelectorAll('.editBtn').forEach(btn => {
+        btn.addEventListener('click', e => {
+          const idx = e.target.dataset.idx;
+          startEditNews(idx);
+        });
+      });
+      document.querySelectorAll('.deleteBtn').forEach(btn => {
+        btn.addEventListener('click', e => {
+          const idx = e.target.dataset.idx;
+          if (confirm('Delete this news item?')) {
+            deleteNews(idx);
+          }
+        });
+      });
+    }
+
+    // Escape HTML to prevent injection
+    function escapeHTML(str) {
+      return str.replace(/[&<>"']/g, function(m) {
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];
+      });
+    }
+
+    // Save news (create or update)
+    newsForm.addEventListener('submit', e => {
+      e.preventDefault();
+      let news = JSON.parse(localStorage.getItem('news')) || [];
+      const title = newsTitle.value.trim();
+      const content = newsContent.value.trim();
+      const date = new Date().toISOString();
+      const idx = newsIndex.value;
+
+      if (idx === '') {
+        // Create new
+        news.push({title, content, date});
+      } else {
+        // Update existing
+        news[idx].title = title;
+        news[idx].content = content;
+        news[idx].date = date;
+      }
+
+      localStorage.setItem('news', JSON.stringify(news));
+      resetNewsForm();
+      loadNews();
+    });
+
+    function startEditNews(idx) {
+      const news = JSON.parse(localStorage.getItem('news')) || [];
+      if (!news[idx]) return;
+      newsTitle.value = news[idx].title;
+      newsContent.value = news[idx].content;
+      newsIndex.value = idx;
+      cancelEditBtn.style.display = 'inline-block';
+    }
+
+    cancelEditBtn.addEventListener('click', () => {
+      resetNewsForm();
+    });
+
+    function resetNewsForm() {
+      newsTitle.value = '';
+      newsContent.value = '';
+      newsIndex.value = '';
+      cancelEditBtn.style.display = 'none';
+    }
+
+    function deleteNews(idx) {
+      let news = JSON.parse(localStorage.getItem('news')) || [];
+      news.splice(idx, 1);
+      localStorage.setItem('news', JSON.stringify(news));
+      loadNews();
+    }
+
+    // --- USER SECTION (owner only) ---
+    if (isOwner) {
+      userSection.style.display = 'block';
+
+      function loadUsers() {
+        const users = JSON.parse(localStorage.getItem('users')) || [];
+        usersTableBody.innerHTML = '';
+        users.forEach((user, idx) => {
+          const tr = document.createElement('tr');
+
+          const roleOptions = ['user', 'admin', 'owner']
+            .map(role => `<option value="${role}" ${role === user.role ? 'selected' : ''}>${role}</option>`)
+            .join('');
+
+          tr.innerHTML = `
+            <td>${escapeHTML(user.username)}</td>
+            <td>${escapeHTML(user.email)}</td>
+            <td>${escapeHTML(user.role)}</td>
+            <td>
+              <select data-index="${idx}">
+                ${roleOptions}
+              </select>
+            </td>
+          `;
+          usersTableBody.appendChild(tr);
+        });
+
+        document.querySelectorAll('#usersTableBody select').forEach(select => {
+          select.addEventListener('change', e => {
+            const idx = e.target.getAttribute('data-index');
+            let users = JSON.parse(localStorage.getItem('users')) || [];
+            const newRole = e.target.value;
+            if (users[idx].username === OWNER_USERNAME) {
+              alert("You cannot change your own role.");
+              e.target.value = users[idx].role;
+              return;
+            }
+            users[idx].role = newRole;
+            localStorage.setItem('users', JSON.stringify(users));
+            loadUsers();
+          });
+        });
+      }
+
+      resetRolesBtn.addEventListener('click', () => {
+        let users = JSON.parse(localStorage.getItem('users')) || [];
+        users = users.map(user => {
+          if (user.username !== OWNER_USERNAME) {
+            return {...user, role: 'user'};
+          }
+          return user;
+        });
+        localStorage.setItem('users', JSON.stringify(users));
+        alert('All roles reset to "user" except you.');
+        loadUsers();
+      });
+
+      loadUsers();
+    }
+
+    loadNews();
+  </script>
+
+</body>
+</html>
