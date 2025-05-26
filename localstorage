@@ -16,4 +16,7 @@ const users = [
     "password":"testuser1",
     "role":"user"
   }
-]
+];
+
+localStorage.setItem("users", JSON.stringify(users));
+localStorage.setItem("currentUser", JSON.stringify(users[0]));
