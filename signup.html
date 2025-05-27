@@ -1,39 +1,128 @@
-function signup(event) {
-  event.preventDefault();
-  const username = document.getElementById('username').value.trim();
-  const email = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value.trim(); // trimmed here
-  const errorMsg = document.getElementById('errorMsg');
-  const successMsg = document.getElementById('successMsg');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sign Up</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 400px;
+      margin: 50px auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    form {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      font-size: 1em;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      font-size: 1em;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .message {
+      text-align: center;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    .error {
+      color: red;
+    }
+    .success {
+      color: green;
+    }
+    p.login-link {
+      text-align: center;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
 
-  const users = JSON.parse(localStorage.getItem('users')) || [];
+  <form id="signupForm">
+    <h1>Create Account</h1>
+    <input type="text" id="username" placeholder="Choose a username" required />
+    <input type="email" id="email" placeholder="Your email" required />
+    <input type="password" id="password" placeholder="Create a password" required />
+    <button type="submit">Sign Up</button>
+    <p class="message error" id="errorMsg"></p>
+    <p class="message success" id="successMsg"></p>
+    <p class="login-link">Already have an account? <a href="login.html">Login</a></p>
+  </form>
 
-  if (users.some(u => u.username === username)) {
-    errorMsg.textContent = 'Username already exists.';
-    successMsg.textContent = '';
-    return;
-  }
+  <script>
+    document.getElementById('signupForm').addEventListener('submit', function(e) {
+      e.preventDefault();
 
-  if (users.some(u => u.email === email)) {
-    errorMsg.textContent = 'Email already registered.';
-    successMsg.textContent = '';
-    return;
-  }
+      const username = document.getElementById('username').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
 
-  const newUser = { username, email, password, role: 'user' };
-  users.push(newUser);
-  localStorage.setItem('users', JSON.stringify(users));
-  localStorage.setItem('currentUser', JSON.stringify(newUser));
+      const errorMsg = document.getElementById('errorMsg');
+      const successMsg = document.getElementById('successMsg');
 
-  successMsg.textContent = 'Account created! Redirecting...';
-  errorMsg.textContent = '';
+      errorMsg.textContent = '';
+      successMsg.textContent = '';
 
-  // Clear inputs
-  document.getElementById('username').value = '';
-  document.getElementById('email').value = '';
-  document.getElementById('password').value = '';
+      // Load existing users or empty array
+      let users = JSON.parse(localStorage.getItem('users')) || [];
 
-  setTimeout(() => {
-    location.href = 'news.html';
-  }, 1000);
-}
+      // Check if username or email already exists
+      if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+        errorMsg.textContent = 'Username already exists.';
+        return;
+      }
+      if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+        errorMsg.textContent = 'Email already registered.';
+        return;
+      }
+
+      // Create new user object
+      const newUser = {
+        username,
+        email,
+        password,
+        role: 'user' // default role
+      };
+
+      users.push(newUser);
+
+      // Save to localStorage
+      localStorage.setItem('users', JSON.stringify(users));
+      localStorage.setItem('currentUser', JSON.stringify(newUser));
+
+      successMsg.textContent = 'Account created! Redirecting...';
+
+      // Clear form inputs
+      document.getElementById('signupForm').reset();
+
+      // Redirect after a short delay
+      setTimeout(() => {
+        window.location.href = 'news.html'; // change this to your protected page
+      }, 1200);
+    });
+  </script>
+
+</body>
+</html>
